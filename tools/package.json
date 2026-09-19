@@ -1,0 +1,13 @@
+{
+  "name": "llm-intel-dashboard-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "回归测试与视觉验证工具（可选，仅开发时使用；交付的看板本身零依赖）",
+  "scripts": {
+    "test": "node regression-test.js ../index.html",
+    "snapshot": "node geometry-snapshot.js ../index.html"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}
