@@ -67,19 +67,34 @@
 
 改完 `src/` 后在包根目录执行 `python build.py`，三份会一起重新生成。
 
-### 已发布的线上版本
+### 线上地址（无需登录）
 
-**https://claude.ai/artifact/KcoPwxe2juTGvcGJ77yHJq**
+## **https://ccl0722.github.io/llm-board/**
 
-- **默认私有**：只有账号本人能打开。要给别人看，在页面右上角的 Share 菜单里自己改权限。
-- `dist/artifact.html` 与 `index.html` 内容完全同源，只差外层文档标签
-  （`<!doctype>` / `<html>` / `<head>` / `<body>` 由发布平台自己套）。
-- 26 个 logo 作为附属文件一起发布，线上仍走 `assets/logos/…` 相对路径，不热链。
-- 更新方式：改完 `src/` → `python build.py` → 让 Claude 用同一个 URL 重新发布（会原地更新，链接不变）。
+GitHub Pages，任何设备直接打开，**不用登录、不用账号**。仓库：
+<https://github.com/ccl0722/llm-board>
 
-想要一个**真正公开、域名自己控制**的地址，这个目录是纯静态的，可以直接丢进
-GitHub Pages / Cloudflare Pages / Netlify —— 把 `index.html` 与 `assets/` 一起上传即可，
-不需要任何构建步骤。
+**更新数据的完整流程**：
+
+```bash
+# 1. 改数据
+#    src/js/data.js
+
+# 2. 重新生成 index.html 与 dist/artifact.html
+python build.py
+
+# 3. 跑一遍回归（可选但推荐）
+cd tools && npm i playwright-core && node regression-test.js ../index.html && cd ..
+
+# 4. 推上去，约 1 分钟后线上生效
+git add -A && git commit -m "更新数据至 YYYY-MM-DD" && git push
+```
+
+Pages 配置为 `main` 分支根目录，`index.html` 就在根目录，所以推上去即发布，无需任何构建流水线。
+根目录的 `.nojekyll` 让 GitHub 跳过 Jekyll 处理，直接按静态文件发布。
+
+**另有一个 claude.ai 上的私有副本**：<https://claude.ai/artifact/KcoPwxe2juTGvcGJ77yHJq>
+（需要登录 claude.ai 才能打开，内容同源但不会随 git push 自动更新；不需要的话可以直接删掉。）
 
 ---
 
