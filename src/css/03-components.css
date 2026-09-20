@@ -40,6 +40,8 @@ table.tbl thead th .th-sub:empty{display:none}
 table.tbl tbody tr{transition:background var(--t)}
 table.tbl tbody tr:hover{background:var(--surface-2)}
 table.tbl tbody tr:last-child td{border-bottom:0}
+/* 行首 3px 厂商色条：与排行图同源，把图与表接成一个系统 */
+table.tbl tbody tr[data-row] > td:first-child{box-shadow:inset 3px 0 0 var(--lab,transparent)}
 table.tbl tbody tr.picked{background:var(--sage-dim)}
 table.tbl tbody tr.picked:hover{background:rgba(168,179,156,.2)}
 table.tbl td.n,table.tbl th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}

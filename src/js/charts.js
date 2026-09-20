@@ -123,8 +123,9 @@ function rankChart(host, opts){
                        tabindex:0, role:'listitem'});
     /* 顶端 4px 圆角、底端切平：用 path 而不是 rect，避免底部也被圆掉 */
     const d = `M${x},${y+h} L${x},${y+rad} Q${x},${y} ${x+rad},${y} L${x+colW-rad},${y} Q${x+colW},${y} ${x+colW},${y+rad} L${x+colW},${y+h} Z`;
-    /* 大色块要收敛：向石墨底融一点，避免一排饱和方块显得吵 */
-    g.appendChild(el('path', {d, fill: r.color, 'fill-opacity': 0.82}));
+    /* 满色渲染：柱宽只有 24px，属于「细标记」而非大色块；
+       深色底上降不透明度只会变暗发脏，不会变得克制（详见 data.js 的说明） */
+    g.appendChild(el('path', {d, fill: r.color}));
     svg.appendChild(g);
 
     bindMark(g, tip,

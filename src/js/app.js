@@ -79,6 +79,11 @@ function labColor(m){
   if(!state.labColor) return MONO_COLOR;
   return LAB_COLORS[m.org] || MONO_COLOR;
 }
+/* 模型行首的 3px 厂商色条 —— 与排行图同源，扫表时多一条聚类线索。
+   切到单色模式时一并消失，保持图与表始终一致。 */
+function labStrip(m){
+  return state.labColor && LAB_COLORS[m.org] ? ' style="--lab:'+LAB_COLORS[m.org]+'"' : '';
+}
 
 /* ---------------- 全局状态 ---------------- */
 const state = {
@@ -269,7 +274,7 @@ function miniTable(list, opts){
     cols.map(k=>'<th class="n">'+esc(MET[k].short)+'<span class="th-sub">'+esc(COL_UNIT_SHORT[k]||'')+'</span></th>').join('')+
     '</tr></thead><tbody>'+
     list.map(m=>
-      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'">'+
+      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'"'+labStrip(m)+'>'+
         '<td class="pick"><button class="ck'+(inCmp(m.id)?' on':'')+'" type="button" data-cmp="'+m.id+'" aria-pressed="'+inCmp(m.id)+'" aria-label="把 '+esc(m.name)+' 加入对比">✓</button></td>'+
         '<td><span class="mcell">'+logoHTML(m.brand)+'<span class="txt"><span class="nm">'+esc(m.name)+'</span><span class="sub">'+esc(orgName(m.org))+'</span></span></span></td>'+
         cols.map(k=>{
@@ -399,7 +404,7 @@ function renderModelTable(){
         '<span class="th-sub">'+esc(COL_UNIT[c.k]||'')+'</span></th>').join('')+
     '</tr></thead>'+
     '<tbody>'+ (list.length ? list.map(m=>
-      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'">'+
+      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'"'+labStrip(m)+'>'+
         '<td class="pick"><button class="ck'+(inCmp(m.id)?' on':'')+'" type="button" data-cmp="'+m.id+'" aria-pressed="'+inCmp(m.id)+'" aria-label="把 '+esc(m.name)+' 加入对比">✓</button></td>'+
         '<td class="fav"><button class="star'+(state.fav.indexOf(m.id)>=0?' on':'')+'" type="button" data-fav="'+m.id+'" aria-pressed="'+(state.fav.indexOf(m.id)>=0)+'" aria-label="关注 '+esc(m.name)+'">'+
           '<svg width="13" height="13" viewBox="0 0 16 16" fill="'+(state.fav.indexOf(m.id)>=0?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.3"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6L8 1.8Z"/></svg></button></td>'+
@@ -632,7 +637,7 @@ function renderPricing(){
       '<th class="n">缓存命中<span class="th-sub">$ / 百万 token</span></th>'+
       '<th>计价方式<span class="th-sub">促销 / 峰谷 / 渠道</span></th></tr></thead><tbody>'+
     priced.map(m=>
-      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'">'+
+      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'"'+labStrip(m)+'>'+
         '<td class="pick"><button class="ck'+(inCmp(m.id)?' on':'')+'" type="button" data-cmp="'+m.id+'" aria-pressed="'+inCmp(m.id)+'" aria-label="把 '+esc(m.name)+' 加入对比">✓</button></td>'+
         '<td><button class="mcell" type="button" data-model="'+m.id+'" style="text-align:left">'+logoHTML(m.brand)+
           '<span class="txt"><span class="nm">'+esc(m.name)+'</span><span class="sub">'+esc(orgName(m.org))+'</span></span></button></td>'+
@@ -654,7 +659,7 @@ function renderPricing(){
     '<thead><tr><th>模型</th>'+
       ['speed','ctx','maxOut','paramsTotal','paramsAct'].map(k=>'<th class="n">'+esc(MET[k].label)+'</th>').join('')+
     '</tr></thead><tbody>'+
-    spec.map(m=>'<tr data-row="'+m.id+'"><td><button class="mcell" type="button" data-model="'+m.id+'" style="text-align:left">'+
+    spec.map(m=>'<tr data-row="'+m.id+'"'+labStrip(m)+'><td><button class="mcell" type="button" data-model="'+m.id+'" style="text-align:left">'+
       logoHTML(m.brand)+'<span class="txt"><span class="nm">'+esc(m.name)+'</span></span></button></td>'+
       ['speed','ctx','maxOut','paramsTotal','paramsAct'].map(k=>{
         const t = fmtVal(k,m[k]);
@@ -958,7 +963,8 @@ document.addEventListener('click', function(e){
   if(rk){ state.rankMetric = rk.dataset.rank; store.set('rankMetric', state.rankMetric); renderRank(); }
   if(e.target.closest('#rankColor')){
     state.labColor = !state.labColor; store.set('labColor', state.labColor);
-    renderRank(); if(state.view==='pricing') drawChart();
+    renderRank(); renderModelTable(); renderOverview();
+    if(state.view==='pricing'){ renderPricing(); drawChart(); }
   }
 });
 

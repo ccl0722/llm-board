@@ -52,7 +52,10 @@
   --warn: #C7A063;   /* 待核实 */
 
   /* ---- 排版 ---- */
-  --mono: "SF Mono","JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  /* 数字占了这个看板一半的视觉分量，所以等宽字体必须是「加载进来的」而不是「掉下去的」。
+     此前栈里写了 SF Mono / JetBrains Mono 却从未加载，Windows 上一路掉到 Consolas，
+     而且每台设备掉到的字体都不一样 —— 同一张表在不同机器上数字长相不同。 */
+  --mono: "IBM Plex Mono","SF Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
   --serif:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,Georgia,serif;
   --sans: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
 
@@ -307,6 +310,8 @@ table.tbl thead th .th-sub:empty{display:none}
 table.tbl tbody tr{transition:background var(--t)}
 table.tbl tbody tr:hover{background:var(--surface-2)}
 table.tbl tbody tr:last-child td{border-bottom:0}
+/* 行首 3px 厂商色条：与排行图同源，把图与表接成一个系统 */
+table.tbl tbody tr[data-row] > td:first-child{box-shadow:inset 3px 0 0 var(--lab,transparent)}
 table.tbl tbody tr.picked{background:var(--sage-dim)}
 table.tbl tbody tr.picked:hover{background:rgba(168,179,156,.2)}
 table.tbl td.n,table.tbl th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -771,7 +776,7 @@ table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -1113,25 +1118,30 @@ const BRANDS = {
   openrouter: {name:'OpenRouter',           logo:'assets/logos/openrouter.svg'}
 };
 
-/* ---------- 厂商图表色（只用于图表，不用于 UI 框架） ----------
-   构造方式：OKLCH 固定彩度 0.145，色相按「离各家品牌色最近」分配到 16 个均匀槽位，
-   明度随色相自然起伏（黄天生亮、蓝天生暗）并在局部交替，以此拉开相邻色。
-   OpenAI / xAI / Z.ai / Motif 是单色品牌，无品牌色相可依，取剩余槽位；
-   其中 OpenAI 用象牙反白，对应它自己在深色背景下的标准用法。
+/* ---------- 厂商图表色（只用于图表与模型行的色条，不用于 UI 框架） ----------
+   构造：色相按「离各家品牌色最近」分配到 15 个均匀槽位（OpenAI 单独用象牙反白，
+   对应它在深色背景下的标准用法）；明度手工指定 —— 强弱交替以拉开相邻色，
+   同时尊重该色相本来的性格（黄必须高、深蓝深紫可以低）；
+   彩度统一冲到该明度/色相下 sRGB 色域上限的 94%。
 
-   ★ 这套色只承担「聚类」，不承担「识别」。
-     16 个分类色在数学上无法两两可分：最糟一对正常视觉 ΔE 7.4，
-     色盲视角下 MiniMax 品红与 Motif 绿会完全重合。
-     所以图表里任何一处都不能只靠颜色读懂 —— 柱下有真实 logo、有名称、
-     有图例、有悬停提示，下方还有完整表格。需要精确区分时切到「单色」模式。
-     实测：16 色对石墨底 #171A17 的对比度全部 >= 3:1（这一项通过）。        */
+   实测（对石墨底 #171A17，全部 120 对）：
+     · 对比度        16 色全部 >= 3:1        ✅ 通过
+     · 正常视觉可分辨 最糟一对 ΔE 8.6（MiniMax 品红 ↔ 小米红）
+     · 色盲可分辨     最糟一对 ΔE 1.6（MiniMax ↔ Motif）  ❌ 不通过
+
+   ★ 所以这套色只承担「聚类」，不承担「识别」。
+     16 个分类色在数学上无法两两可分 —— 这不是调参能解决的。
+     识别由柱下真实 logo、名称、图例、悬停提示与下方表格共同承担，
+     界面上任何一处都不得只靠颜色读懂。需要精确区分时切「单色」模式。
+
+   ⚠️ 柱子**不要**再叠 fill-opacity。在深色底上降低不透明度不是「收敛」，
+      是往黑里掺：实测会让实际彩度再掉 15% 并同时变暗，看着像禁用态。     */
 const LAB_COLORS = {
-  xiaomi:'#C15152', anthropic:'#F58A5A', mistral:'#FFC580', openai:'#E9E5DB',
-  xai:'#FEDC61',    zai:'#9DB037',       nvidia:'#98E98F',  motif:'#00AC7F',
-  tencent:'#0DD9D1', stepfun:'#0390A6',  meta:'#39B6FB',    deepseek:'#4371C8',
-  alibaba:'#C5C3FE', google:'#A16AC7',   moonshot:'#EF92DD', minimax:'#D66892'
+  xiaomi:'#CF4047', anthropic:'#FA874C', mistral:'#C5821F', openai:'#C9C5BA',
+  xai:'#E5C12F',    zai:'#97AA21',       nvidia:'#72DA68',  motif:'#229C75',
+  tencent:'#2CC2BB', stepfun:'#1B8FA4',  meta:'#25B0F7',    deepseek:'#2F67D5',
+  alibaba:'#8C7CF9', google:'#944EC1',   moonshot:'#F380E0', minimax:'#D64C86'
 };
-/* 单色模式：一个色走天下 + 选中态强调（需要精确区分时用这个） */
 const MONO_COLOR = 'rgba(238,234,226,.30)';
 
 /* ---------- 数据来源登记表 ---------- */
@@ -2422,8 +2432,9 @@ function rankChart(host, opts){
                        tabindex:0, role:'listitem'});
     /* 顶端 4px 圆角、底端切平：用 path 而不是 rect，避免底部也被圆掉 */
     const d = `M${x},${y+h} L${x},${y+rad} Q${x},${y} ${x+rad},${y} L${x+colW-rad},${y} Q${x+colW},${y} ${x+colW},${y+rad} L${x+colW},${y+h} Z`;
-    /* 大色块要收敛：向石墨底融一点，避免一排饱和方块显得吵 */
-    g.appendChild(el('path', {d, fill: r.color, 'fill-opacity': 0.82}));
+    /* 满色渲染：柱宽只有 24px，属于「细标记」而非大色块；
+       深色底上降不透明度只会变暗发脏，不会变得克制（详见 data.js 的说明） */
+    g.appendChild(el('path', {d, fill: r.color}));
     svg.appendChild(g);
 
     bindMark(g, tip,
@@ -2660,6 +2671,11 @@ function labColor(m){
   if(!state.labColor) return MONO_COLOR;
   return LAB_COLORS[m.org] || MONO_COLOR;
 }
+/* 模型行首的 3px 厂商色条 —— 与排行图同源，扫表时多一条聚类线索。
+   切到单色模式时一并消失，保持图与表始终一致。 */
+function labStrip(m){
+  return state.labColor && LAB_COLORS[m.org] ? ' style="--lab:'+LAB_COLORS[m.org]+'"' : '';
+}
 
 /* ---------------- 全局状态 ---------------- */
 const state = {
@@ -2850,7 +2866,7 @@ function miniTable(list, opts){
     cols.map(k=>'<th class="n">'+esc(MET[k].short)+'<span class="th-sub">'+esc(COL_UNIT_SHORT[k]||'')+'</span></th>').join('')+
     '</tr></thead><tbody>'+
     list.map(m=>
-      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'">'+
+      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'"'+labStrip(m)+'>'+
         '<td class="pick"><button class="ck'+(inCmp(m.id)?' on':'')+'" type="button" data-cmp="'+m.id+'" aria-pressed="'+inCmp(m.id)+'" aria-label="把 '+esc(m.name)+' 加入对比">✓</button></td>'+
         '<td><span class="mcell">'+logoHTML(m.brand)+'<span class="txt"><span class="nm">'+esc(m.name)+'</span><span class="sub">'+esc(orgName(m.org))+'</span></span></span></td>'+
         cols.map(k=>{
@@ -2980,7 +2996,7 @@ function renderModelTable(){
         '<span class="th-sub">'+esc(COL_UNIT[c.k]||'')+'</span></th>').join('')+
     '</tr></thead>'+
     '<tbody>'+ (list.length ? list.map(m=>
-      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'">'+
+      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'"'+labStrip(m)+'>'+
         '<td class="pick"><button class="ck'+(inCmp(m.id)?' on':'')+'" type="button" data-cmp="'+m.id+'" aria-pressed="'+inCmp(m.id)+'" aria-label="把 '+esc(m.name)+' 加入对比">✓</button></td>'+
         '<td class="fav"><button class="star'+(state.fav.indexOf(m.id)>=0?' on':'')+'" type="button" data-fav="'+m.id+'" aria-pressed="'+(state.fav.indexOf(m.id)>=0)+'" aria-label="关注 '+esc(m.name)+'">'+
           '<svg width="13" height="13" viewBox="0 0 16 16" fill="'+(state.fav.indexOf(m.id)>=0?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.3"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6L8 1.8Z"/></svg></button></td>'+
@@ -3213,7 +3229,7 @@ function renderPricing(){
       '<th class="n">缓存命中<span class="th-sub">$ / 百万 token</span></th>'+
       '<th>计价方式<span class="th-sub">促销 / 峰谷 / 渠道</span></th></tr></thead><tbody>'+
     priced.map(m=>
-      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'">'+
+      '<tr'+(inCmp(m.id)?' class="picked"':'')+' data-row="'+m.id+'"'+labStrip(m)+'>'+
         '<td class="pick"><button class="ck'+(inCmp(m.id)?' on':'')+'" type="button" data-cmp="'+m.id+'" aria-pressed="'+inCmp(m.id)+'" aria-label="把 '+esc(m.name)+' 加入对比">✓</button></td>'+
         '<td><button class="mcell" type="button" data-model="'+m.id+'" style="text-align:left">'+logoHTML(m.brand)+
           '<span class="txt"><span class="nm">'+esc(m.name)+'</span><span class="sub">'+esc(orgName(m.org))+'</span></span></button></td>'+
@@ -3235,7 +3251,7 @@ function renderPricing(){
     '<thead><tr><th>模型</th>'+
       ['speed','ctx','maxOut','paramsTotal','paramsAct'].map(k=>'<th class="n">'+esc(MET[k].label)+'</th>').join('')+
     '</tr></thead><tbody>'+
-    spec.map(m=>'<tr data-row="'+m.id+'"><td><button class="mcell" type="button" data-model="'+m.id+'" style="text-align:left">'+
+    spec.map(m=>'<tr data-row="'+m.id+'"'+labStrip(m)+'><td><button class="mcell" type="button" data-model="'+m.id+'" style="text-align:left">'+
       logoHTML(m.brand)+'<span class="txt"><span class="nm">'+esc(m.name)+'</span></span></button></td>'+
       ['speed','ctx','maxOut','paramsTotal','paramsAct'].map(k=>{
         const t = fmtVal(k,m[k]);
@@ -3539,7 +3555,8 @@ document.addEventListener('click', function(e){
   if(rk){ state.rankMetric = rk.dataset.rank; store.set('rankMetric', state.rankMetric); renderRank(); }
   if(e.target.closest('#rankColor')){
     state.labColor = !state.labColor; store.set('labColor', state.labColor);
-    renderRank(); if(state.view==='pricing') drawChart();
+    renderRank(); renderModelTable(); renderOverview();
+    if(state.view==='pricing'){ renderPricing(); drawChart(); }
   }
 });
 
