@@ -122,6 +122,22 @@
           <p>搜索、筛选、排序找到候选，勾选 2–4 个进入深度对比。筛选只影响下面这张表，加入对比是另一件事。</p>
         </div>
 
+        <figure class="chart-card" id="rankCard">
+          <figcaption class="chart-head">
+            <div class="ct">
+              <h2 id="rankTitle">智能指数排行</h2>
+              <p class="cs" id="rankBasis"></p>
+            </div>
+            <div class="chart-tools">
+              <span class="seg" id="rankMetric" role="group" aria-label="选择指标"></span>
+              <button class="btn sm" id="rankColor" type="button" aria-pressed="true">厂商着色</button>
+            </div>
+          </figcaption>
+          <div class="chart-body" id="rankChart"></div>
+          <div class="chart-legend" id="rankLegend"></div>
+          <p class="chart-foot" id="rankFoot"></p>
+        </figure>
+
         <div class="filters" id="filters"></div>
 
         <div class="tbl-wrap tall"><table class="tbl" id="modelTable"></table></div>
@@ -151,8 +167,16 @@
         </div>
 
         <div class="sec">
-          <div class="sec-head"><h2>智能指数 vs 单任务成本</h2><span class="sub">两轴同源，均为 Artificial Analysis 实测</span></div>
-          <div id="chartBox"></div>
+          <figure class="chart-card">
+            <figcaption class="chart-head">
+              <div class="ct">
+                <h2>智能指数 × 单任务成本</h2>
+                <p class="cs">两轴同源，均为 Artificial Analysis 实测 · 横轴对数刻度 · 越靠左上越划算</p>
+              </div>
+            </figcaption>
+            <div class="chart-body" id="chartBox"></div>
+            <div class="chart-legend" id="scatterLegend"></div>
+          </figure>
           <p class="sec-note">纵轴 = Artificial Analysis 智能指数 v4.3；横轴 = 跑完一道智能指数任务的<b>加权平均实测成本</b>（美元，对数刻度）—— 它把推理 token 消耗量与缓存命中都算进去了，比标价更接近真实账单。<b>只画出两项都有数据的模型</b>，缺一项即不参与。注意这是「跑评测任务」的成本，不等于你自己业务的单次调用成本。</p>
         </div>
 
@@ -260,6 +284,7 @@
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/charts.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

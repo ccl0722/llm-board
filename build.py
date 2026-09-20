@@ -10,7 +10,7 @@ build.py  ·  把 src/ 内联回单文件 index.html
 
 规则：
     - CSS 按 01-tokens -> 02-layout -> 03-components 顺序内联（顺序即级联优先级）
-    - JS  按 data.js -> app.js 顺序内联（app.js 依赖 data.js 暴露的常量）
+    - JS  按 data.js -> charts.js -> app.js 顺序内联（后者依赖前者暴露的常量）
     - assets/ 保持为外部目录：logo 走相对路径引用，不内联，
       因此 index.html 必须与 assets/ 保持同级，不能单独拎走
     - 额外产出 dist/artifact.html：发布到 claude.ai Artifact 用的版本，
@@ -34,7 +34,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, 'src')
 
 CSS_FILES = ['css/01-tokens.css', 'css/02-layout.css', 'css/03-components.css']
-JS_FILES = ['js/data.js', 'js/app.js']
+JS_FILES = ['js/data.js', 'js/charts.js', 'js/app.js']
 
 HEAD_NOTE = (
     '<!-- 由 build.py 从 src/ 生成，请勿直接编辑本文件；'

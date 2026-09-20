@@ -247,23 +247,86 @@ table.mx td.c.compat{color:var(--ink-3)}
 table.mx td.c.na{color:var(--line-3)}
 table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:var(--ink-3);margin-top:1px}
 
-/* 散点图 */
-.chart{position:relative;height:330px;margin:16px 0 4px 46px;border-left:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
-.chart .gl{position:absolute;left:0;right:0;border-top:1px dashed var(--line);pointer-events:none}
-.chart .gy{position:absolute;right:calc(100% + 7px);transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--ink-3);white-space:nowrap}
-.chart .gx{position:absolute;top:calc(100% + 5px);transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--ink-3);white-space:nowrap}
-.chart .pt{position:absolute;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--ink-3);border:1px solid var(--bg);cursor:default}
-.chart .pt:hover,.chart .pt:focus-visible{background:var(--sage);z-index:5}
-.chart .pt .pl{
-  position:absolute;left:12px;top:50%;transform:translateY(-50%);
-  font-size:11px;color:var(--ink-3);white-space:nowrap;pointer-events:none;
+/* ==========================================================
+   图表系统
+   —— 图表文字一律穿文字色，绝不穿数据色；数据色只在 mark 上
+   ========================================================== */
+.chart-card{
+  border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);
+  margin:0 0 16px;overflow:hidden;
 }
-.chart .pt .pl.left{left:auto;right:12px}
-.chart .pt:hover .pl{color:var(--ink)}
-.chart .pt.mark{background:var(--sage)}
-.ax-y,.ax-x{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
-.ax-y{position:absolute;left:-46px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:center;white-space:nowrap}
-.ax-x{display:block;text-align:center;margin-top:26px}
+.chart-head{
+  display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;
+  padding:15px 18px 13px;border-bottom:1px solid var(--line);
+}
+.chart-head .ct{flex:1;min-width:220px}
+.chart-head h2{font-size:15.5px;font-weight:650;letter-spacing:.005em;line-height:1.35}
+.chart-head .cs{font-size:12px;color:var(--ink-3);line-height:1.6;margin-top:4px;max-width:78ch}
+.chart-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chart-body{position:relative;padding:10px 14px 4px}
+.chart-foot{font-size:12px;line-height:1.7;color:var(--ink-3);padding:0 18px 15px}
+.chart-foot b{color:var(--ink-2);font-weight:600}
+
+/* 分段控件：切换图表指标 */
+.seg{
+  display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface-2);
+  max-width:100%;overflow-x:auto;scrollbar-width:none;
+}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:none}
+.seg button{
+  padding:4px 10px;font-size:12px;color:var(--ink-3);white-space:nowrap;
+  border-right:1px solid var(--line);transition:background var(--t),color var(--t);
+}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-3);color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--sage-dim);color:var(--ink);font-weight:600}
+
+/* SVG 本体 */
+.ch-svg{display:block;width:100%;overflow:visible}
+.ch-tick{font-family:var(--mono);font-size:10px;fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.ch-name{font-family:var(--sans);font-size:10.5px;fill:var(--ink-3)}
+.ch-name.on{fill:var(--ink);font-weight:600}
+.ch-val{font-family:var(--mono);font-size:11px;fill:var(--ink-hi);font-variant-numeric:tabular-nums}
+.ch-plabel{font-family:var(--sans);font-size:11px;fill:var(--ink-3)}
+.ch-plabel.on{fill:var(--ink);font-weight:600}
+.ch-logo{opacity:.92}
+.ch-axis{font-family:var(--sans);font-size:10.5px;fill:var(--ink-3);letter-spacing:.02em}
+
+.ch-col{cursor:default;transition:opacity var(--t)}
+.ch-col path{transition:fill-opacity var(--t)}
+.ch-col.dim{opacity:.26}
+.ch-col:hover path,.ch-col:focus-visible path{fill-opacity:.82}
+.ch-col.marked path{stroke:var(--ink);stroke-width:1.5;paint-order:stroke}
+.ch-col:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+.ch-pt{cursor:default}
+.ch-pt.marked circle{stroke:var(--ink);stroke-width:2}
+.ch-pt:hover circle,.ch-pt:focus-visible circle{r:7}
+.ch-pt:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.ch-front{pointer-events:none}
+.ch-region{pointer-events:none}
+
+/* 悬停提示：只做增强，值在下方表格里同样拿得到 */
+.ch-tip{
+  position:absolute;z-index:20;pointer-events:none;min-width:130px;max-width:260px;
+  padding:8px 11px;border-radius:var(--r);background:var(--bg-rail);
+  border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.45);
+}
+.ch-tip b{display:block;font-size:13px;color:var(--ink);font-weight:600;line-height:1.35}
+.ch-tip .o{display:block;font-size:11px;color:var(--ink-3);margin-top:1px}
+.ch-tip .v{display:block;font-family:var(--mono);font-size:13px;color:var(--ink-hi);margin-top:5px;font-variant-numeric:tabular-nums}
+.ch-tip .s{display:block;font-size:11px;color:var(--sage-hi);margin-top:3px}
+
+/* 图例：色块 + 真实 logo + 名称 —— 识别永远不只靠颜色 */
+.chart-legend{
+  display:flex;flex-wrap:wrap;gap:4px 14px;padding:0 18px 14px;
+}
+.chart-legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-3)}
+.chart-legend .sw{width:9px;height:9px;border-radius:2px;flex:none}
+.chart-legend .logo{height:14px;width:14px}
+.chart-legend .logo.wide{width:20px}
+.chart-legend.mono{display:none}
 
 /* ---------- 时间线 ---------- */
 .tl{position:relative;padding-left:96px}
@@ -421,3 +484,20 @@ table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:
 .ov-side{display:flex;flex-direction:column;gap:28px}
 .ov-side .sec{margin-top:0}
 @media (max-width:1080px){ .ov-top{grid-template-columns:minmax(0,1fr);gap:34px} }
+
+/* ---------- 深度对比表里的相对位置条 ---------- */
+/* 只在同一行内比较（同一指标、同一口径），跨行没有可比性 */
+.cbar{position:relative;display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;max-width:150px}
+.cbar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--line-3)}
+.cbar i.best{background:var(--good)}
+.cbar.none{background:none}
+
+@media (max-width:720px){
+  .chart-head{padding:13px 14px 11px;gap:10px}
+  .chart-head .ct{min-width:100%}
+  .chart-tools{width:100%}
+  .chart-body{padding:8px 8px 2px}
+  .chart-foot{padding:0 14px 13px;font-size:11.5px}
+  .chart-legend{padding:0 14px 12px;gap:3px 10px}
+  .chart-legend .lg{font-size:11px}
+}

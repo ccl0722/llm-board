@@ -73,6 +73,13 @@ function logoHTML(key, cls){
 }
 function orgName(key){ const b = brandOf(key); return b?b.name:key; }
 
+/* ---------------- 图表配色 ----------------
+   厂商色只做聚类，识别永远由 logo + 名称 + 图例 + 悬停 + 表格承担。*/
+function labColor(m){
+  if(!state.labColor) return MONO_COLOR;
+  return LAB_COLORS[m.org] || MONO_COLOR;
+}
+
 /* ---------------- 全局状态 ---------------- */
 const state = {
   view:  'overview',
@@ -85,7 +92,9 @@ const state = {
   fav:   (store.get('fav', []) || []).filter(id=>byId[id]),
   diffOnly: false,
   chgAll: false,
-  voiceAll: false
+  voiceAll: false,
+  rankMetric: store.get('rankMetric','aaii'),
+  labColor:   store.get('labColor', true)      /* 厂商着色，默认开 */
 };
 const MAXCMP = 4;
 const DEFAULT_COLS = ['aaii','cai','tb40','cpt','priceOut','ctx','license'];
@@ -225,6 +234,7 @@ function go(view){
   if(location.hash.slice(1) !== view) history.replaceState(null,'','#'+view);
   window.scrollTo({top:0, behavior:'auto'});
   if(view==='pricing') drawChart();
+  if(view==='models')  renderRank();
 }
 
 /* ================================================================
@@ -409,6 +419,72 @@ function renderModelTable(){
 }
 
 /* ================================================================
+   指标排行柱状图
+   ================================================================ */
+const RANK_METRICS = ['aaii','cai','tb40','gdpval','lcr','nonhall','speed','cpt'];
+
+function renderRank(){
+  const host = $('#rankChart'); if(!host) return;
+  const met  = MET[state.rankMetric] || MET.aaii;
+
+  /* 分段控件 */
+  $('#rankMetric').innerHTML = RANK_METRICS.map(k =>
+    '<button type="button" data-rank="'+k+'" aria-pressed="'+(k===state.rankMetric)+'">'+esc(MET[k].short)+'</button>').join('');
+  $('#rankColor').textContent = state.labColor ? '厂商着色' : '单色';
+  $('#rankColor').setAttribute('aria-pressed', state.labColor);
+
+  /* 只画有该指标的模型；缺失的不按 0 参与，直接不进图 */
+  const withVal = MODELS.filter(m => m[met.k]);
+  const dir = met.better === 'low' ? 1 : -1;
+  withVal.sort((a,b)=> cmpBy(a,b,met.k,dir) || a.name.localeCompare(b.name));
+
+  /* 当前筛选之外的置灰 —— 筛选与图表联动，但不把数据删掉 */
+  const inFilter = new Set(filtered().map(m=>m.id));
+
+  /* 窄屏放不下几十根柱子 —— 只画前 N 名，并在脚注里说明截断 */
+  const host_w = host.clientWidth || 900;
+  const cap = host_w < 560 ? 10 : host_w < 900 ? 18 : withVal.length;
+  const shown = withVal.slice(0, cap);
+
+  const rows = shown.map(m => ({
+    id:m.id, name:m.name, orgName:orgName(m.org), brand:m.brand,
+    value:m[met.k].v, disp:fmtVal(met.k,m[met.k]) + unitOf(met.k),
+    sub:(m[met.k].note || '') || (m.variant || ''),
+    logo:(BRANDS[m.brand]||{}).logo, color:labColor(m),
+    dim: inFilter.size !== MODELS.length && !inFilter.has(m.id),
+    marked: inCmp(m.id)
+  }));
+
+  $('#rankTitle').textContent = met.label + ' 排行';
+  $('#rankBasis').innerHTML = esc(met.basis) +
+    ' · ' + (met.better==='low' ? '越低越好' : '越高越好') +
+    ' · 共 <b class="mono">' + withVal.length + '</b> / ' + MODELS.length + ' 个模型有该项数据' +
+    (cap < withVal.length ? '，屏幕较窄，图中只画前 <b class="mono">'+cap+'</b> 名' : '');
+
+  CH.rankChart(host, {
+    metric: met.label, rows, better: met.better,
+    tickFmt: met.money ? 'money' : '',
+    yTitle: met.short + (met.unit ? '（'+met.unit.trim()+'）' : ''),
+    aria: met.label + ' 排行：' + rows.slice(0,3).map(r=>r.name+' '+r.disp).join('，') + '，完整数据见下方表格'
+  });
+
+  /* 图例：色块 + 真实 logo + 名称 */
+  const labs = [];
+  rows.forEach(r => { const m = byId[r.id]; if(labs.indexOf(m.org) < 0) labs.push(m.org); });
+  const lg = $('#rankLegend');
+  lg.className = 'chart-legend' + (state.labColor ? '' : ' mono');
+  lg.innerHTML = state.labColor ? labs.map(o =>
+    '<span class="lg"><span class="sw" style="background:'+(LAB_COLORS[o]||MONO_COLOR)+'"></span>'+
+    logoHTML(o)+esc(orgName(o))+'</span>').join('') : '';
+
+  $('#rankFoot').innerHTML =
+    (met.warn ? '<b>注意：</b>'+esc(met.warn)+'　' : '') +
+    '柱下是各家<b>真实品牌标识</b>：颜色只用来一眼看出同一家聚在哪儿，<b>识别请看标识与名称</b>' +
+    '——16 个厂商色无法两两可分（色盲视角下更甚），别只凭颜色下结论。' +
+    '数值只标了前三名与已加入对比的，其余悬停查看，完整数据见下方表格。';
+}
+
+/* ================================================================
    深度对比：模型为列、指标为行
    ================================================================ */
 function renderCompareUI(){
@@ -449,6 +525,12 @@ function renderCompare(){
 
 function rowCells(list, mk){
   const best = bestOf(list, mk);
+  /* 行内条按「占最优值的比例」画，而不是按选中集的极差归一化 ——
+     后者在只选两个时会把落后的那根压成空条，只重复了「谁更大」这一件事。 */
+  const nums = list.map(x=>x[mk]).filter(Boolean).map(x=>x.v);
+  const vmax = nums.length ? Math.max.apply(null,nums) : 0;
+  const vmin = nums.length ? Math.min.apply(null,nums) : 0;
+  const lowBetter = MET[mk] && MET[mk].better === 'low';
   const cells = list.map(m=>{
     const val = m[mk], t = fmtVal(mk, val);
     if(!t){
@@ -456,8 +538,15 @@ function rowCells(list, mk){
       return {txt:'—', html:'<td><span class="cval none">暂无数据</span>'+note+'</td>'};
     }
     const isBest = best.v != null && val.v === best.v;
+    /* 行内条：占最优值的比例（越低越好的指标取倒数比），只在本行内可比 */
+    let bar = '';
+    if(nums.length > 1 && vmax > 0){
+      const w = lowBetter ? (vmin / m[mk].v) * 100 : (m[mk].v / vmax) * 100;
+      bar = '<span class="cbar" title="占本行最优值的 '+Math.round(w)+'%"><i class="'+(isBest?'best':'')+
+            '" style="width:'+Math.max(4,Math.min(100,w)).toFixed(1)+'%"></i></span>';
+    }
     return {txt:t, html:'<td><span class="cval'+(isBest?' best':'')+'">'+esc(t)+'<span class="u">'+esc(unitOf(mk))+'</span></span>'+
-      kindTag(val, true) + (val.note ? '<span class="cnote">'+esc(val.note)+'</span>' : '') + '</td>'};
+      kindTag(val, true) + (val.note ? '<span class="cnote">'+esc(val.note)+'</span>' : '') + bar + '</td>'};
   });
   return {cells, best};
 }
@@ -592,49 +681,29 @@ function renderPricing(){
     (s.note?'<p class="note">'+esc(s.note)+'</p>':'')+'</div>').join('');
 }
 
-/* ---- 散点：AAII vs 输出单价（对数），两轴都是页面已有的单一口径数据 ---- */
+/* ---- 散点：智能指数 × 单任务成本（两轴同源，均为 AA 实测） ---- */
 function drawChart(){
   const box = $('#chartBox'); if(!box) return;
-  const pts = MODELS.filter(m=>m.aaii && m.cpt);
-  if(pts.length < 3){
-    box.innerHTML = '<div class="empty"><b>可靠数据不足，改用表格</b>同时具备智能指数与单任务成本的模型少于 3 个，画散点没有意义。</div>';
-    return;
-  }
-  const xs = pts.map(p=>p.cpt.v), ys = pts.map(p=>p.aaii.v);
-  const x0 = Math.log10(Math.min.apply(null,xs)*0.72), x1 = Math.log10(Math.max.apply(null,xs)*1.35);
-  const y0 = Math.max(0, Math.floor(Math.min.apply(null,ys)/10)*10 - 2), y1 = Math.ceil(Math.max.apply(null,ys)/10)*10 + 2;
+  const pts = MODELS.filter(m => m.aaii && m.cpt).map(m => ({
+    id:m.id, name:m.name, orgName:orgName(m.org),
+    x:m.cpt.v, y:m.aaii.v,
+    xDisp:'单任务 '+fmtVal('cpt',m.cpt), yDisp:'智能指数 '+fmtVal('aaii',m.aaii),
+    color:labColor(m), marked:inCmp(m.id)
+  }));
+  CH.scatterChart(box, {
+    points: pts,
+    aria:'散点图：纵轴为 Artificial Analysis 智能指数 v4.3，横轴为跑完一道评测任务的实测成本（美元，对数刻度）。完整数值见本页表格。'
+  });
 
-  box.innerHTML = '<div class="chart" id="chart" role="img" aria-label="散点图：纵轴为 Artificial Analysis 智能指数 v4.3，横轴为跑完一道智能指数任务的实测成本，美元，对数刻度"></div><span class="ax-x">单任务实测成本（美元，对数刻度）→ 越左越便宜</span>';
-  const c = $('#chart');
-  const W = c.clientWidth, H = c.clientHeight;
-  const X = v => ((Math.log10(v)-x0)/(x1-x0))*W;
-  const Y = v => (1-(v-y0)/(y1-y0))*H;
-  let html = '<span class="ax-y">AAII 智能指数 →</span>';
-  for(let i=0;i<=4;i++){
-    const val = y0 + (y1-y0)/4*i, top = Y(val);
-    html += '<span class="gl" style="top:'+top+'px"></span><span class="gy" style="top:'+top+'px">'+val.toFixed(0)+'</span>';
+  const labs = [];
+  pts.forEach(p => { const m = byId[p.id]; if(labs.indexOf(m.org) < 0) labs.push(m.org); });
+  const lg = $('#scatterLegend');
+  if(lg){
+    lg.className = 'chart-legend' + (state.labColor ? '' : ' mono');
+    lg.innerHTML = state.labColor ? labs.map(o =>
+      '<span class="lg"><span class="sw" style="background:'+(LAB_COLORS[o]||MONO_COLOR)+'"></span>'+
+      logoHTML(o)+esc(orgName(o))+'</span>').join('') : '';
   }
-  [0.05,0.1,0.25,0.5,1,2,5,10].forEach(t=>{ if(Math.log10(t)>=x0 && Math.log10(t)<=x1) html += '<span class="gx" style="left:'+X(t)+'px">$'+t+'</span>'; });
-  /* 标签避让：同一片区域只显示第一个标签，其余只留悬停提示，
-     否则密集区会糊成一团。优先给智能指数高的点留标签。 */
-  const placed = [];
-  const sorted = pts.slice().sort((a,b)=> b.aaii.v - a.aaii.v);
-  const showLabel = {};
-  sorted.forEach(p=>{
-    const px = X(p.cpt.v), py = Y(p.aaii.v);
-    const clash = placed.some(q => Math.abs(q.x-px) < 96 && Math.abs(q.y-py) < 13);
-    if(!clash || inCmp(p.id)){ showLabel[p.id] = true; placed.push({x:px,y:py}); }
-  });
-  pts.forEach(p=>{
-    const px = X(p.cpt.v), py = Y(p.aaii.v);
-    const flip = px > W*0.66;   /* 靠右的点，标签翻到左边，避免溢出画布 */
-    const price = p.priceIn && p.priceOut ? ' · 标价 $'+p.priceIn.v+' / $'+p.priceOut.v+' 每百万 token' : '';
-    html += '<span class="pt'+(inCmp(p.id)?' mark':'')+'" style="left:'+px+'px;top:'+py+'px" tabindex="0" role="button" data-model="'+p.id+'" '+
-      'title="'+esc(p.name+' · 智能指数 '+p.aaii.v+' · 单任务成本 $'+p.cpt.v.toFixed(2)+price)+'">'+
-      (showLabel[p.id] ? '<span class="pl'+(flip?' left':'')+'">'+esc(p.name)+'</span>' : '')+
-      '</span>';
-  });
-  c.innerHTML = html;
 }
 
 /* ================================================================
@@ -805,7 +874,7 @@ document.addEventListener('click', function(e){
   if(t.dataset.cmpset !== undefined){ setCmpSet(t.dataset.cmpset.split(',').filter(Boolean)); closeDrawer(); return; }
   if(t.dataset.cmp){
     e.preventDefault();
-    if(toggleCmp(t.dataset.cmp)){ renderModelTable(); renderOverview(); if(state.view==='pricing'){ renderPricing(); drawChart(); } }
+    if(toggleCmp(t.dataset.cmp)){ renderModelTable(); renderOverview(); renderRank(); if(state.view==='pricing'){ renderPricing(); drawChart(); } }
     if($('#drawer').classList.contains('open')){ const id=t.dataset.cmp; if(t.closest('.df')) openModel(id); }
     renderCompareUI();
     return;
@@ -816,9 +885,9 @@ document.addEventListener('click', function(e){
   if(t.dataset.org){
     const o = t.dataset.org;
     state.orgs.has(o) ? state.orgs.delete(o) : state.orgs.add(o);
-    renderFilters(); renderModelTable(); return;
+    renderFilters(); renderModelTable(); renderRank(); return;
   }
-  if(t.dataset.flag){ state.flags[t.dataset.flag] = !state.flags[t.dataset.flag]; renderFilters(); renderModelTable(); return; }
+  if(t.dataset.flag){ state.flags[t.dataset.flag] = !state.flags[t.dataset.flag]; renderFilters(); renderModelTable(); renderRank(); return; }
   if(t.dataset.sort){
     const k = t.dataset.sort;
     if(state.sort.k === k) state.sort.dir *= -1;
@@ -856,10 +925,10 @@ document.addEventListener('keydown', function(e){
 $('#q').addEventListener('input', function(){
   state.q = this.value;
   $('#qClear').hidden = !this.value;
-  renderModelTable();
+  renderModelTable(); renderRank();
   if(state.view !== 'models' && this.value.trim()) location.hash = 'models';
 });
-$('#qClear').addEventListener('click', function(){ $('#q').value=''; state.q=''; this.hidden=true; renderModelTable(); $('#q').focus(); });
+$('#qClear').addEventListener('click', function(){ $('#q').value=''; state.q=''; this.hidden=true; renderModelTable(); renderRank(); $('#q').focus(); });
 
 document.addEventListener('change', function(e){
   const cb = e.target.closest('[data-col]'); if(!cb) return;
@@ -874,9 +943,9 @@ document.addEventListener('change', function(e){
 
 document.addEventListener('click', function(e){
   if(e.target.closest('#colBtn')){ const p = $('#colPop'); p.classList.toggle('open'); $('#colBtn').setAttribute('aria-expanded', p.classList.contains('open')); }
-  if(e.target.closest('#fReset')){ state.orgs.clear(); state.flags={open:false,scored:false,current:false}; state.q=''; $('#q').value=''; $('#qClear').hidden=true; renderFilters(); renderModelTable(); }
+  if(e.target.closest('#fReset')){ state.orgs.clear(); state.flags={open:false,scored:false,current:false}; state.q=''; $('#q').value=''; $('#qClear').hidden=true; renderFilters(); renderModelTable(); renderRank(); }
   if(e.target.closest('#btnDiff')){ state.diffOnly = !state.diffOnly; renderCompare(); }
-  if(e.target.closest('#btnCmpClear') || e.target.closest('#trayClear')){ state.cmp=[]; store.set('cmp',[]); renderModelTable(); renderCompareUI(); renderOverview(); if(state.view==='pricing') drawChart(); }
+  if(e.target.closest('#btnCmpClear') || e.target.closest('#trayClear')){ state.cmp=[]; store.set('cmp',[]); renderModelTable(); renderCompareUI(); renderOverview(); renderRank(); if(state.view==='pricing') drawChart(); }
   if(e.target.closest('#trayGo') || e.target.closest('#btnCompare')){
     location.hash = 'models';
     setTimeout(()=>{ const el=$('#secCompare'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 60);
@@ -885,6 +954,12 @@ document.addEventListener('click', function(e){
   if(e.target.closest('#voiceMore')){ state.voiceAll = !state.voiceAll; renderVoices(); }
   if(e.target.closest('#favCompare')){ setCmpSet(state.fav.slice(0,MAXCMP)); }
   if(e.target.closest('#btnUpdate')){ $('#updDialog').classList.add('open'); $('#updCopy').focus(); }
+  const rk = e.target.closest('[data-rank]');
+  if(rk){ state.rankMetric = rk.dataset.rank; store.set('rankMetric', state.rankMetric); renderRank(); }
+  if(e.target.closest('#rankColor')){
+    state.labColor = !state.labColor; store.set('labColor', state.labColor);
+    renderRank(); if(state.view==='pricing') drawChart();
+  }
 });
 
 /* 更新指令：这个按钮只做「复制文字」，不做也做不了真正的数据更新 */
@@ -907,13 +982,17 @@ $('#updCopy').addEventListener('click', async function(){
 
 window.addEventListener('hashchange', ()=> go(location.hash.slice(1)));
 let rt = null;
-window.addEventListener('resize', ()=>{ clearTimeout(rt); rt = setTimeout(()=>{ if(state.view==='pricing') drawChart(); }, 160); }, {passive:true});
+window.addEventListener('resize', ()=>{ clearTimeout(rt); rt = setTimeout(()=>{
+  if(state.view==='pricing') drawChart();
+  if(state.view==='models')  renderRank();
+}, 160); }, {passive:true});
 
 /* ---------------- 启动 ---------------- */
 renderNav();
 renderOverview();
 renderFilters();
 renderModelTable();
+renderRank();
 renderPricing();
 renderIntel();
 renderCompareUI();

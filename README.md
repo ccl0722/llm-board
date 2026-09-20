@@ -46,7 +46,8 @@
 │   │   ├── 02-layout.css            骨架 + 排版 + 通用元素 + 响应式 + 打印
 │   │   └── 03-components.css        组件层（表格 / 对比 / 抽屉 / 图表 …）
 │   └── js/
-│       ├── data.js                  ★ 数据层：模型、指标、变化、厂商、来源、冲突
+│       ├── data.js                  ★ 数据层：模型、指标、变化、厂商、来源、冲突、厂商图表色
+│       ├── charts.js                图表层：排行柱状图 + 散点（纯 SVG，无依赖）
 │       └── app.js                   行为层：路由 / 渲染 / 筛选 / 对比 / 抽屉
 │
 ├── assets/logos/                ← 26 个真实品牌 SVG + SOURCES.md 来源记录
@@ -157,6 +158,8 @@ aaii: v(53, 'ind', '与 GPT-6 Astra 并列榜首')
 | 更新数据（分数、价格、新模型） | `src/js/data.js` —— 只改这一个文件 |
 | 颜色 / 字体 / 圆角 / 间距 | `src/css/01-tokens.css` |
 | 表格、对比表、抽屉、图表的样式 | `src/css/03-components.css` |
+| 图表的几何与绘制逻辑 | `src/js/charts.js` |
+| 厂商图表色 | `src/js/data.js` 的 `LAB_COLORS`（改前先读 DESIGN-SYSTEM 第 7 节） |
 | 骨架、响应式断点、打印样式 | `src/css/02-layout.css` |
 | 交互逻辑（筛选 / 排序 / 对比 / 路由） | `src/js/app.js` |
 | 页面结构 / 新增区块 | `src/index.html` |

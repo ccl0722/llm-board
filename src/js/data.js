@@ -66,6 +66,27 @@ const BRANDS = {
   openrouter: {name:'OpenRouter',           logo:'assets/logos/openrouter.svg'}
 };
 
+/* ---------- 厂商图表色（只用于图表，不用于 UI 框架） ----------
+   构造方式：OKLCH 固定彩度 0.145，色相按「离各家品牌色最近」分配到 16 个均匀槽位，
+   明度随色相自然起伏（黄天生亮、蓝天生暗）并在局部交替，以此拉开相邻色。
+   OpenAI / xAI / Z.ai / Motif 是单色品牌，无品牌色相可依，取剩余槽位；
+   其中 OpenAI 用象牙反白，对应它自己在深色背景下的标准用法。
+
+   ★ 这套色只承担「聚类」，不承担「识别」。
+     16 个分类色在数学上无法两两可分：最糟一对正常视觉 ΔE 7.4，
+     色盲视角下 MiniMax 品红与 Motif 绿会完全重合。
+     所以图表里任何一处都不能只靠颜色读懂 —— 柱下有真实 logo、有名称、
+     有图例、有悬停提示，下方还有完整表格。需要精确区分时切到「单色」模式。
+     实测：16 色对石墨底 #171A17 的对比度全部 >= 3:1（这一项通过）。        */
+const LAB_COLORS = {
+  xiaomi:'#C15152', anthropic:'#F58A5A', mistral:'#FFC580', openai:'#E9E5DB',
+  xai:'#FEDC61',    zai:'#9DB037',       nvidia:'#98E98F',  motif:'#00AC7F',
+  tencent:'#0DD9D1', stepfun:'#0390A6',  meta:'#39B6FB',    deepseek:'#4371C8',
+  alibaba:'#C5C3FE', google:'#A16AC7',   moonshot:'#EF92DD', minimax:'#D66892'
+};
+/* 单色模式：一个色走天下 + 选中态强调（需要精确区分时用这个） */
+const MONO_COLOR = 'rgba(238,234,226,.30)';
+
 /* ---------- 数据来源登记表 ---------- */
 const SOURCES = {
   aa:      {name:'Artificial Analysis',   url:'https://artificialanalysis.ai/leaderboards/models', kind:'独立评测机构', asOf:'2026-09-19',

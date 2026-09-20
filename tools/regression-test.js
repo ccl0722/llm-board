@@ -47,11 +47,26 @@ const EXE = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applicati
   const pick  = id => page.click(`#modelTable [data-cmp="${id}"]`);
 
   // ---------- 结构 ----------
-  await page.click('a[href="#models"]'); await page.waitForTimeout(300);
+  await page.click('a[href="#models"]'); await page.waitForTimeout(600);
   out.navItems   = await count('#navMain a');
+  // 排行图：柱数 / 柱下品牌标识数 / 图例项数必须齐全
+  out.rankCols   = await count('#rankChart .ch-col');
+  out.rankLogos  = await count('#rankChart .ch-logo');
+  out.rankLegend = await count('#rankLegend .lg');
+  out.rankMetricBtns = await count('#rankMetric button');
   out.modelRows  = await count('#modelTable tbody tr');
   out.orgFilters = await count('[data-org]');
   out.changes    = await count('#changes .chg');
+
+  // ---------- 图表换指标 ----------
+  await page.click('[data-rank="cpt"]'); await page.waitForTimeout(500);
+  out.rankColsAfterMetricSwitch = await count('#rankChart .ch-col');
+  out.rankTitleAfterSwitch = await text('#rankTitle');
+  await page.click('[data-rank="aaii"]'); await page.waitForTimeout(400);
+  // 单色模式：图例应收起
+  await page.click('#rankColor'); await page.waitForTimeout(400);
+  out.legendHiddenInMono = await page.$eval('#rankLegend', e => e.classList.contains('mono'));
+  await page.click('#rankColor'); await page.waitForTimeout(400);
 
   // ---------- Logo ----------
   await page.click('a[href="#intel"]'); await page.waitForTimeout(300);
@@ -117,7 +132,9 @@ const EXE = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applicati
   await page.click('a[href="#pricing"]'); await page.waitForTimeout(450);
   out.priceRows  = await count('#priceTable tbody tr');
   out.specRows   = await count('#specTable tbody tr');
-  out.chartPoints= await count('#chart .pt');
+  out.scatterPoints  = await count('#chartBox .ch-pt');
+  out.scatterFrontier= await count('#chartBox .ch-front');
+  out.scatterLegend  = await count('#scatterLegend .lg');
   out.subPlans   = await count('#subsGrid .plan');
   await page.click('a[href="#intel"]'); await page.waitForTimeout(350);
   out.vendorRows = await count('#vendorTable tbody tr');
@@ -151,6 +168,8 @@ const EXE = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applicati
   const bad = errors.length
     || out.overLimitKeeps4 !== '4'
     || out.logoBroken.length
+    || out.rankCols === 0 || out.rankLogos !== out.rankCols
+    || out.scatterPoints === 0
     || Object.values(out.viewports).some(v => Object.values(v.horizontalOverflow).some(Boolean));
   process.exit(bad ? 1 : 0);
 })();

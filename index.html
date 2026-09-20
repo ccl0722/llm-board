@@ -514,23 +514,86 @@ table.mx td.c.compat{color:var(--ink-3)}
 table.mx td.c.na{color:var(--line-3)}
 table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:var(--ink-3);margin-top:1px}
 
-/* 散点图 */
-.chart{position:relative;height:330px;margin:16px 0 4px 46px;border-left:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
-.chart .gl{position:absolute;left:0;right:0;border-top:1px dashed var(--line);pointer-events:none}
-.chart .gy{position:absolute;right:calc(100% + 7px);transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--ink-3);white-space:nowrap}
-.chart .gx{position:absolute;top:calc(100% + 5px);transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--ink-3);white-space:nowrap}
-.chart .pt{position:absolute;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--ink-3);border:1px solid var(--bg);cursor:default}
-.chart .pt:hover,.chart .pt:focus-visible{background:var(--sage);z-index:5}
-.chart .pt .pl{
-  position:absolute;left:12px;top:50%;transform:translateY(-50%);
-  font-size:11px;color:var(--ink-3);white-space:nowrap;pointer-events:none;
+/* ==========================================================
+   图表系统
+   —— 图表文字一律穿文字色，绝不穿数据色；数据色只在 mark 上
+   ========================================================== */
+.chart-card{
+  border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);
+  margin:0 0 16px;overflow:hidden;
 }
-.chart .pt .pl.left{left:auto;right:12px}
-.chart .pt:hover .pl{color:var(--ink)}
-.chart .pt.mark{background:var(--sage)}
-.ax-y,.ax-x{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
-.ax-y{position:absolute;left:-46px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:center;white-space:nowrap}
-.ax-x{display:block;text-align:center;margin-top:26px}
+.chart-head{
+  display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;
+  padding:15px 18px 13px;border-bottom:1px solid var(--line);
+}
+.chart-head .ct{flex:1;min-width:220px}
+.chart-head h2{font-size:15.5px;font-weight:650;letter-spacing:.005em;line-height:1.35}
+.chart-head .cs{font-size:12px;color:var(--ink-3);line-height:1.6;margin-top:4px;max-width:78ch}
+.chart-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chart-body{position:relative;padding:10px 14px 4px}
+.chart-foot{font-size:12px;line-height:1.7;color:var(--ink-3);padding:0 18px 15px}
+.chart-foot b{color:var(--ink-2);font-weight:600}
+
+/* 分段控件：切换图表指标 */
+.seg{
+  display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface-2);
+  max-width:100%;overflow-x:auto;scrollbar-width:none;
+}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:none}
+.seg button{
+  padding:4px 10px;font-size:12px;color:var(--ink-3);white-space:nowrap;
+  border-right:1px solid var(--line);transition:background var(--t),color var(--t);
+}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-3);color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--sage-dim);color:var(--ink);font-weight:600}
+
+/* SVG 本体 */
+.ch-svg{display:block;width:100%;overflow:visible}
+.ch-tick{font-family:var(--mono);font-size:10px;fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.ch-name{font-family:var(--sans);font-size:10.5px;fill:var(--ink-3)}
+.ch-name.on{fill:var(--ink);font-weight:600}
+.ch-val{font-family:var(--mono);font-size:11px;fill:var(--ink-hi);font-variant-numeric:tabular-nums}
+.ch-plabel{font-family:var(--sans);font-size:11px;fill:var(--ink-3)}
+.ch-plabel.on{fill:var(--ink);font-weight:600}
+.ch-logo{opacity:.92}
+.ch-axis{font-family:var(--sans);font-size:10.5px;fill:var(--ink-3);letter-spacing:.02em}
+
+.ch-col{cursor:default;transition:opacity var(--t)}
+.ch-col path{transition:fill-opacity var(--t)}
+.ch-col.dim{opacity:.26}
+.ch-col:hover path,.ch-col:focus-visible path{fill-opacity:.82}
+.ch-col.marked path{stroke:var(--ink);stroke-width:1.5;paint-order:stroke}
+.ch-col:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+.ch-pt{cursor:default}
+.ch-pt.marked circle{stroke:var(--ink);stroke-width:2}
+.ch-pt:hover circle,.ch-pt:focus-visible circle{r:7}
+.ch-pt:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.ch-front{pointer-events:none}
+.ch-region{pointer-events:none}
+
+/* 悬停提示：只做增强，值在下方表格里同样拿得到 */
+.ch-tip{
+  position:absolute;z-index:20;pointer-events:none;min-width:130px;max-width:260px;
+  padding:8px 11px;border-radius:var(--r);background:var(--bg-rail);
+  border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.45);
+}
+.ch-tip b{display:block;font-size:13px;color:var(--ink);font-weight:600;line-height:1.35}
+.ch-tip .o{display:block;font-size:11px;color:var(--ink-3);margin-top:1px}
+.ch-tip .v{display:block;font-family:var(--mono);font-size:13px;color:var(--ink-hi);margin-top:5px;font-variant-numeric:tabular-nums}
+.ch-tip .s{display:block;font-size:11px;color:var(--sage-hi);margin-top:3px}
+
+/* 图例：色块 + 真实 logo + 名称 —— 识别永远不只靠颜色 */
+.chart-legend{
+  display:flex;flex-wrap:wrap;gap:4px 14px;padding:0 18px 14px;
+}
+.chart-legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-3)}
+.chart-legend .sw{width:9px;height:9px;border-radius:2px;flex:none}
+.chart-legend .logo{height:14px;width:14px}
+.chart-legend .logo.wide{width:20px}
+.chart-legend.mono{display:none}
 
 /* ---------- 时间线 ---------- */
 .tl{position:relative;padding-left:96px}
@@ -688,6 +751,23 @@ table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:
 .ov-side{display:flex;flex-direction:column;gap:28px}
 .ov-side .sec{margin-top:0}
 @media (max-width:1080px){ .ov-top{grid-template-columns:minmax(0,1fr);gap:34px} }
+
+/* ---------- 深度对比表里的相对位置条 ---------- */
+/* 只在同一行内比较（同一指标、同一口径），跨行没有可比性 */
+.cbar{position:relative;display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;max-width:150px}
+.cbar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--line-3)}
+.cbar i.best{background:var(--good)}
+.cbar.none{background:none}
+
+@media (max-width:720px){
+  .chart-head{padding:13px 14px 11px;gap:10px}
+  .chart-head .ct{min-width:100%}
+  .chart-tools{width:100%}
+  .chart-body{padding:8px 8px 2px}
+  .chart-foot{padding:0 14px 13px;font-size:11.5px}
+  .chart-legend{padding:0 14px 12px;gap:3px 10px}
+  .chart-legend .lg{font-size:11px}
+}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -802,6 +882,22 @@ table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:
           <p>搜索、筛选、排序找到候选，勾选 2–4 个进入深度对比。筛选只影响下面这张表，加入对比是另一件事。</p>
         </div>
 
+        <figure class="chart-card" id="rankCard">
+          <figcaption class="chart-head">
+            <div class="ct">
+              <h2 id="rankTitle">智能指数排行</h2>
+              <p class="cs" id="rankBasis"></p>
+            </div>
+            <div class="chart-tools">
+              <span class="seg" id="rankMetric" role="group" aria-label="选择指标"></span>
+              <button class="btn sm" id="rankColor" type="button" aria-pressed="true">厂商着色</button>
+            </div>
+          </figcaption>
+          <div class="chart-body" id="rankChart"></div>
+          <div class="chart-legend" id="rankLegend"></div>
+          <p class="chart-foot" id="rankFoot"></p>
+        </figure>
+
         <div class="filters" id="filters"></div>
 
         <div class="tbl-wrap tall"><table class="tbl" id="modelTable"></table></div>
@@ -831,8 +927,16 @@ table.mx td.c .sub{display:block;font-family:var(--sans);font-size:10.5px;color:
         </div>
 
         <div class="sec">
-          <div class="sec-head"><h2>智能指数 vs 单任务成本</h2><span class="sub">两轴同源，均为 Artificial Analysis 实测</span></div>
-          <div id="chartBox"></div>
+          <figure class="chart-card">
+            <figcaption class="chart-head">
+              <div class="ct">
+                <h2>智能指数 × 单任务成本</h2>
+                <p class="cs">两轴同源，均为 Artificial Analysis 实测 · 横轴对数刻度 · 越靠左上越划算</p>
+              </div>
+            </figcaption>
+            <div class="chart-body" id="chartBox"></div>
+            <div class="chart-legend" id="scatterLegend"></div>
+          </figure>
           <p class="sec-note">纵轴 = Artificial Analysis 智能指数 v4.3；横轴 = 跑完一道智能指数任务的<b>加权平均实测成本</b>（美元，对数刻度）—— 它把推理 token 消耗量与缓存命中都算进去了，比标价更接近真实账单。<b>只画出两项都有数据的模型</b>，缺一项即不参与。注意这是「跑评测任务」的成本，不等于你自己业务的单次调用成本。</p>
         </div>
 
@@ -1008,6 +1112,27 @@ const BRANDS = {
   huggingface:{name:'Hugging Face',         logo:'assets/logos/huggingface.svg'},
   openrouter: {name:'OpenRouter',           logo:'assets/logos/openrouter.svg'}
 };
+
+/* ---------- 厂商图表色（只用于图表，不用于 UI 框架） ----------
+   构造方式：OKLCH 固定彩度 0.145，色相按「离各家品牌色最近」分配到 16 个均匀槽位，
+   明度随色相自然起伏（黄天生亮、蓝天生暗）并在局部交替，以此拉开相邻色。
+   OpenAI / xAI / Z.ai / Motif 是单色品牌，无品牌色相可依，取剩余槽位；
+   其中 OpenAI 用象牙反白，对应它自己在深色背景下的标准用法。
+
+   ★ 这套色只承担「聚类」，不承担「识别」。
+     16 个分类色在数学上无法两两可分：最糟一对正常视觉 ΔE 7.4，
+     色盲视角下 MiniMax 品红与 Motif 绿会完全重合。
+     所以图表里任何一处都不能只靠颜色读懂 —— 柱下有真实 logo、有名称、
+     有图例、有悬停提示，下方还有完整表格。需要精确区分时切到「单色」模式。
+     实测：16 色对石墨底 #171A17 的对比度全部 >= 3:1（这一项通过）。        */
+const LAB_COLORS = {
+  xiaomi:'#C15152', anthropic:'#F58A5A', mistral:'#FFC580', openai:'#E9E5DB',
+  xai:'#FEDC61',    zai:'#9DB037',       nvidia:'#98E98F',  motif:'#00AC7F',
+  tencent:'#0DD9D1', stepfun:'#0390A6',  meta:'#39B6FB',    deepseek:'#4371C8',
+  alibaba:'#C5C3FE', google:'#A16AC7',   moonshot:'#EF92DD', minimax:'#D66892'
+};
+/* 单色模式：一个色走天下 + 选中态强调（需要精确区分时用这个） */
+const MONO_COLOR = 'rgba(238,234,226,.30)';
 
 /* ---------- 数据来源登记表 ---------- */
 const SOURCES = {
@@ -2171,6 +2296,288 @@ const CONFLICTS = [
 ];
 </script>
 <script>
+/* ---------- js/charts.js ---------- */
+/* ==========================================================
+   charts.js · 图表层
+   --------------------------------------------------------
+   两张图：
+     rankChart()   指标排行柱状图 —— 柱下挂真实品牌标识，这是识别的主通道
+     scatterChart() 智能指数 × 单任务成本散点 —— 含帕累托前沿与优先区
+
+   配色约定（重要）：
+     厂商色只承担「聚类」—— 一眼看出某家占据了榜首那一片。
+     它**不承担识别**：识别由柱下 logo、名称、图例、悬停提示与下方表格承担。
+     16 个分类色在数学上无法两两可分（最糟一对正常视觉 ΔE 7.4，
+     色盲视角下品红与绿会重合），所以任何一处都不能只靠颜色读懂。
+     需要精确区分时用「单色」模式：一个色 + 选中态强调。
+
+   几何规范（照数据可视化通用规范）：
+     柱宽 ≤24px · 顶端 4px 圆角、底端切平 · 相邻柱留 2px 表面间隙
+     网格线为 1px 实线（不用虚线）· 标记 ≥8px 且带 2px 表面描边
+     数值标签只给少数几根，其余交给坐标轴与悬停
+   ========================================================== */
+
+const CH = (function(){
+'use strict';
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (n, a) => { const e = document.createElementNS(NS, n); for(const k in a){ if(a[k]!=null) e.setAttribute(k, a[k]); } return e; };
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* 读取当前主题令牌，图表文字一律走文字色，绝不穿数据色 */
+function tok(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/* ---------- 共用：悬停提示 ---------- */
+function mkTip(host){
+  let tip = host.querySelector('.ch-tip');
+  if(!tip){ tip = document.createElement('div'); tip.className = 'ch-tip'; tip.hidden = true; host.appendChild(tip); }
+  return {
+    show(html, x, y){
+      tip.innerHTML = html; tip.hidden = false;
+      const hb = host.getBoundingClientRect(), tb = tip.getBoundingClientRect();
+      let left = x - tb.width/2;
+      left = Math.max(4, Math.min(hb.width - tb.width - 4, left));
+      tip.style.left = left + 'px';
+      tip.style.top  = Math.max(4, y - tb.height - 12) + 'px';
+    },
+    hide(){ tip.hidden = true; }
+  };
+}
+
+/* 把一组 mark 接上悬停 / 键盘焦点 —— 提示只做增强，值在表格里同样拿得到 */
+function bindMark(node, tip, html, host){
+  const at = () => { const b = node.getBoundingClientRect(), h = host.getBoundingClientRect();
+                     return [b.left - h.left + b.width/2, b.top - h.top]; };
+  const on  = () => { const [x,y] = at(); tip.show(html, x, y); };
+  node.addEventListener('mouseenter', on);
+  node.addEventListener('focus', on);
+  node.addEventListener('mouseleave', tip.hide);
+  node.addEventListener('blur', tip.hide);
+}
+
+/* ==========================================================
+   指标排行柱状图
+   opts: {metric, rows:[{id,name,org,brand,value,disp,unit,logo,dim,marked}],
+          better, basis, note, colorBy:'lab'|'mono', max}
+   ========================================================== */
+function rankChart(host, opts){
+  host.innerHTML = '';
+  const rows = opts.rows;
+  if(!rows.length){
+    host.innerHTML = '<div class="empty"><b>这一项还没有可比数据</b>换一个指标，或到下方表格查看完整记录。</div>';
+    return;
+  }
+
+  const ink   = tok('--ink','#EFEDE6'), ink2 = tok('--ink-2','#B7B4AA'), ink3 = tok('--ink-3','#8D8B82');
+  const line  = tok('--line','rgba(238,234,226,.085)'), line2 = tok('--line-2','rgba(238,234,226,.155)');
+  const surf  = tok('--surface','#171A17');
+  const sage  = tok('--sage','#A8B39C');
+
+  const W = Math.max(520, host.clientWidth || 900);
+  const PAD = {t:18, r:10, b:118, l:46};
+  const PLOT_H = 224;
+  const H = PAD.t + PLOT_H + PAD.b;
+
+  const plotW = W - PAD.l - PAD.r;
+  const band  = plotW / rows.length;
+  const colW  = Math.max(5, Math.min(24, band - 2));      // 柱宽上限 24px，band 余量即 2px 表面间隙
+
+  const vals = rows.map(r => r.value);
+  const lo = Math.min(0, Math.min.apply(null, vals));
+  const hi = Math.max.apply(null, vals);
+  const {top, step} = niceScale(lo, hi, 4);
+  const Y = v => PAD.t + PLOT_H - (v - lo) / (top - lo) * PLOT_H;
+
+  const svg = el('svg', {width:'100%', viewBox:`0 0 ${W} ${H}`, class:'ch-svg',
+                         role:'img', 'aria-label': opts.aria || (opts.metric + ' 排行')});
+  svg.style.height = H + 'px';
+
+  /* --- 网格：一步之差的灰、1px 实线、在数据之下 --- */
+  const ticks = []; for(let t = lo; t <= top + 1e-9; t += step) ticks.push(+t.toFixed(6));
+  ticks.forEach(t => {
+    svg.appendChild(el('line', {x1:PAD.l, x2:W-PAD.r, y1:Y(t), y2:Y(t), stroke: t===lo?line2:line, 'stroke-width':1}));
+    const tx = el('text', {x:PAD.l-8, y:Y(t)+3.5, 'text-anchor':'end', class:'ch-tick'});
+    tx.textContent = fmtTick(t, opts.tickFmt);
+    svg.appendChild(tx);
+  });
+
+  /* --- 坐标轴标题 --- */
+  if(opts.yTitle){
+    const yt = el('text', {x:0, y:0, class:'ch-axis', transform:`translate(13 ${PAD.t+PLOT_H/2}) rotate(-90)`, 'text-anchor':'middle'});
+    yt.textContent = opts.yTitle; svg.appendChild(yt);
+  }
+
+  /* --- 柱 --- */
+  const tip = mkTip(host);
+  rows.forEach((r, i) => {
+    const cx = PAD.l + band*i + band/2;
+    const x  = cx - colW/2;
+    const y  = Y(r.value), h = Math.max(1.5, PAD.t + PLOT_H - y);
+    const rad = Math.min(4, colW/2);
+
+    const g = el('g', {class:'ch-col' + (r.dim ? ' dim' : '') + (r.marked ? ' marked' : ''),
+                       tabindex:0, role:'listitem'});
+    /* 顶端 4px 圆角、底端切平：用 path 而不是 rect，避免底部也被圆掉 */
+    const d = `M${x},${y+h} L${x},${y+rad} Q${x},${y} ${x+rad},${y} L${x+colW-rad},${y} Q${x+colW},${y} ${x+colW},${y+rad} L${x+colW},${y+h} Z`;
+    /* 大色块要收敛：向石墨底融一点，避免一排饱和方块显得吵 */
+    g.appendChild(el('path', {d, fill: r.color, 'fill-opacity': 0.82}));
+    svg.appendChild(g);
+
+    bindMark(g, tip,
+      '<b>'+esc(r.name)+'</b><span class="o">'+esc(r.orgName)+'</span>'+
+      '<span class="v">'+esc(r.disp)+'</span>'+
+      (r.sub ? '<span class="s">'+esc(r.sub)+'</span>' : ''), host);
+
+    /* --- 柱下品牌标识：识别的主通道 --- */
+    if(r.logo){
+      const sz = Math.min(17, Math.max(11, colW));
+      svg.appendChild(el('image', {href:r.logo, x:cx-sz/2, y:PAD.t+PLOT_H+9, width:sz, height:sz,
+                                   preserveAspectRatio:'xMidYMid meet', class:'ch-logo'}));
+    }
+
+    /* --- 旋转的名称 --- */
+    const ty = PAD.t + PLOT_H + 36;
+    const t = el('text', {x:cx, y:ty, class:'ch-name'+(r.marked?' on':''),
+                          transform:`rotate(-52 ${cx} ${ty})`, 'text-anchor':'end'});
+    t.textContent = r.name.length > 20 ? r.name.slice(0,19)+'…' : r.name;
+    svg.appendChild(t);
+  });
+
+  /* --- 数值标签：只给前三与已选中的，其余交给坐标轴与悬停 --- */
+  rows.forEach((r,i) => {
+    if(!(i < 3 || r.marked)) return;
+    const cx = PAD.l + band*i + band/2, y = Y(r.value);
+    const label = el('text', {x:cx, y:y-7, 'text-anchor':'middle', class:'ch-val'});
+    label.textContent = r.disp;
+    /* 放不下就不放 —— 绝不裁切 */
+    if(colW >= 18 || rows.length <= 24) svg.appendChild(label);
+  });
+
+  host.appendChild(svg);
+}
+
+/* ==========================================================
+   散点：智能指数 × 单任务成本
+   ========================================================== */
+function scatterChart(host, opts){
+  host.innerHTML = '';
+  const pts = opts.points;
+  if(pts.length < 3){
+    host.innerHTML = '<div class="empty"><b>可靠数据不足，改用表格</b>两项都有数据的模型少于 3 个，画散点没有意义。</div>';
+    return;
+  }
+  const line = tok('--line','rgba(238,234,226,.085)'), line2 = tok('--line-2','rgba(238,234,226,.155)');
+  const surf = tok('--surface','#171A17'), sage = tok('--sage','#A8B39C');
+
+  const W = Math.max(520, host.clientWidth || 900);
+  const PAD = {t:26, r:20, b:62, l:56};
+  const PLOT_H = 300, H = PAD.t + PLOT_H + PAD.b;
+  const plotW = W - PAD.l - PAD.r;
+
+  const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+  const x0 = Math.log10(Math.min.apply(null,xs)*0.7), x1 = Math.log10(Math.max.apply(null,xs)*1.45);
+  const y0 = Math.max(0, Math.floor(Math.min.apply(null,ys)/10)*10-3), y1 = Math.ceil(Math.max.apply(null,ys)/10)*10+3;
+  const X = v => PAD.l + (Math.log10(v)-x0)/(x1-x0)*plotW;
+  const Y = v => PAD.t + PLOT_H - (v-y0)/(y1-y0)*PLOT_H;
+
+  const svg = el('svg', {width:'100%', viewBox:`0 0 ${W} ${H}`, class:'ch-svg',
+                         role:'img', 'aria-label': opts.aria || '智能指数与单任务成本散点图'});
+  svg.style.height = H + 'px';
+
+  /* --- 帕累托前沿：没有任何模型在两个维度上都更好的那条边 --- */
+  const sorted = pts.slice().sort((a,b)=> a.x-b.x || b.y-a.y);
+  const front = [];
+  let bestY = -Infinity;
+  sorted.forEach(p => { if(p.y > bestY){ front.push(p); bestY = p.y; } });
+
+  /* --- 网格：1px 实线 --- */
+  for(let i=0;i<=4;i++){
+    const v = y0 + (y1-y0)/4*i, y = Y(v);
+    svg.appendChild(el('line', {x1:PAD.l, x2:W-PAD.r, y1:y, y2:y, stroke: i===0?line2:line, 'stroke-width':1}));
+    const t = el('text', {x:PAD.l-8, y:y+3.5, 'text-anchor':'end', class:'ch-tick'});
+    t.textContent = Math.round(v); svg.appendChild(t);
+  }
+  [0.05,0.1,0.25,0.5,1,2,5,10,20].forEach(v => {
+    if(Math.log10(v) < x0 || Math.log10(v) > x1) return;
+    const x = X(v);
+    svg.appendChild(el('line', {x1:x, x2:x, y1:PAD.t, y2:PAD.t+PLOT_H, stroke:line, 'stroke-width':1}));
+    const t = el('text', {x, y:PAD.t+PLOT_H+16, 'text-anchor':'middle', class:'ch-tick'});
+    t.textContent = '$'+(v<1?v.toFixed(2):v); svg.appendChild(t);
+  });
+
+  /* --- 帕累托前沿：没有任何模型能同时更强又更便宜的那条边 --- */
+  if(front.length > 1){
+    svg.appendChild(el('polyline', {
+      points: front.map(p=>X(p.x)+','+Y(p.y)).join(' '),
+      fill:'none', stroke:sage, 'stroke-width':2, 'stroke-linejoin':'round', 'stroke-linecap':'round',
+      'stroke-opacity':.5, class:'ch-front'}));
+    const lead = front[front.length-1];
+    const lb = el('text', {x:X(lead.x)-8, y:Y(lead.y)-14, 'text-anchor':'end', class:'ch-axis'});
+    lb.textContent = '帕累托前沿'; svg.appendChild(lb);
+  }
+
+  /* --- 坐标轴标题 --- */
+  const xt = el('text', {x:PAD.l+plotW/2, y:H-6, 'text-anchor':'middle', class:'ch-axis'});
+  xt.textContent = '单任务实测成本（美元 · 对数刻度）→ 越左越便宜';
+  svg.appendChild(xt);
+  const yt = el('text', {x:0, y:0, class:'ch-axis', transform:`translate(14 ${PAD.t+PLOT_H/2}) rotate(-90)`, 'text-anchor':'middle'});
+  yt.textContent = 'AA 智能指数 v4.3 →';
+  svg.appendChild(yt);
+
+  /* --- 点：r≥4，带 2px 表面描边，避免重叠处糊在一起 --- */
+  const tip = mkTip(host);
+  const placed = [];
+  const frontSet = new Set(front.map(p=>p.id));
+  /* 前沿上的点优先获得标签 —— 它们是这张图真正要讲的 */
+  pts.slice().sort((a,b)=> (frontSet.has(b.id)?1:0)-(frontSet.has(a.id)?1:0) || b.y-a.y).forEach(p => {
+    p.onFront = frontSet.has(p.id);
+    const cx = X(p.x), cy = Y(p.y);
+    const g = el('g', {class:'ch-pt'+(p.marked?' marked':''), tabindex:0, role:'listitem'});
+    g.appendChild(el('circle', {cx, cy, r:p.marked?6:5, fill:p.color, stroke:surf, 'stroke-width':2}));
+    svg.appendChild(g);
+    bindMark(g, tip,
+      '<b>'+esc(p.name)+'</b><span class="o">'+esc(p.orgName)+'</span>'+
+      '<span class="v">'+esc(p.yDisp)+' · '+esc(p.xDisp)+'</span>'+
+      (p.onFront ? '<span class="s">位于帕累托前沿</span>' : ''), host);
+
+    /* 标签避让：挤在一起的只保留第一个，其余靠悬停 */
+    const clash = placed.some(q => Math.abs(q.x-cx) < 130 && Math.abs(q.y-cy) < 15);
+    if(!clash || p.marked){
+      placed.push({x:cx,y:cy});
+      const flip = cx > PAD.l + plotW*0.62;
+      const t = el('text', {x: cx + (flip?-10:10), y: cy+3.5,
+                            'text-anchor': flip?'end':'start', class:'ch-plabel'+(p.marked?' on':'')});
+      t.textContent = p.name;
+      svg.appendChild(t);
+    }
+  });
+
+  host.appendChild(svg);
+  return {frontIds: front.map(p=>p.id)};
+}
+
+/* ---------- 刻度：选一个「好看的步长」，让 n 格刚好盖住数据 ---------- */
+function niceScale(lo, hi, n){
+  const span = Math.max(hi - lo, 1e-6);
+  const raw  = span / n;
+  const mag  = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+  return {top: Math.ceil(hi / step) * step, step};
+}
+function fmtTick(v, fmt){
+  if(fmt === 'money') return '$' + (v >= 10 ? v.toFixed(0) : v.toFixed(v < 1 ? 2 : 1));
+  if(Math.abs(v) >= 1000) return (v/1000).toFixed(v%1000?1:0)+'k';
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
+return {rankChart, scatterChart};
+})();
+</script>
+<script>
 /* ---------- js/app.js ---------- */
 /* ==========================================================
    app.js · 行为层
@@ -2247,6 +2654,13 @@ function logoHTML(key, cls){
 }
 function orgName(key){ const b = brandOf(key); return b?b.name:key; }
 
+/* ---------------- 图表配色 ----------------
+   厂商色只做聚类，识别永远由 logo + 名称 + 图例 + 悬停 + 表格承担。*/
+function labColor(m){
+  if(!state.labColor) return MONO_COLOR;
+  return LAB_COLORS[m.org] || MONO_COLOR;
+}
+
 /* ---------------- 全局状态 ---------------- */
 const state = {
   view:  'overview',
@@ -2259,7 +2673,9 @@ const state = {
   fav:   (store.get('fav', []) || []).filter(id=>byId[id]),
   diffOnly: false,
   chgAll: false,
-  voiceAll: false
+  voiceAll: false,
+  rankMetric: store.get('rankMetric','aaii'),
+  labColor:   store.get('labColor', true)      /* 厂商着色，默认开 */
 };
 const MAXCMP = 4;
 const DEFAULT_COLS = ['aaii','cai','tb40','cpt','priceOut','ctx','license'];
@@ -2399,6 +2815,7 @@ function go(view){
   if(location.hash.slice(1) !== view) history.replaceState(null,'','#'+view);
   window.scrollTo({top:0, behavior:'auto'});
   if(view==='pricing') drawChart();
+  if(view==='models')  renderRank();
 }
 
 /* ================================================================
@@ -2583,6 +3000,72 @@ function renderModelTable(){
 }
 
 /* ================================================================
+   指标排行柱状图
+   ================================================================ */
+const RANK_METRICS = ['aaii','cai','tb40','gdpval','lcr','nonhall','speed','cpt'];
+
+function renderRank(){
+  const host = $('#rankChart'); if(!host) return;
+  const met  = MET[state.rankMetric] || MET.aaii;
+
+  /* 分段控件 */
+  $('#rankMetric').innerHTML = RANK_METRICS.map(k =>
+    '<button type="button" data-rank="'+k+'" aria-pressed="'+(k===state.rankMetric)+'">'+esc(MET[k].short)+'</button>').join('');
+  $('#rankColor').textContent = state.labColor ? '厂商着色' : '单色';
+  $('#rankColor').setAttribute('aria-pressed', state.labColor);
+
+  /* 只画有该指标的模型；缺失的不按 0 参与，直接不进图 */
+  const withVal = MODELS.filter(m => m[met.k]);
+  const dir = met.better === 'low' ? 1 : -1;
+  withVal.sort((a,b)=> cmpBy(a,b,met.k,dir) || a.name.localeCompare(b.name));
+
+  /* 当前筛选之外的置灰 —— 筛选与图表联动，但不把数据删掉 */
+  const inFilter = new Set(filtered().map(m=>m.id));
+
+  /* 窄屏放不下几十根柱子 —— 只画前 N 名，并在脚注里说明截断 */
+  const host_w = host.clientWidth || 900;
+  const cap = host_w < 560 ? 10 : host_w < 900 ? 18 : withVal.length;
+  const shown = withVal.slice(0, cap);
+
+  const rows = shown.map(m => ({
+    id:m.id, name:m.name, orgName:orgName(m.org), brand:m.brand,
+    value:m[met.k].v, disp:fmtVal(met.k,m[met.k]) + unitOf(met.k),
+    sub:(m[met.k].note || '') || (m.variant || ''),
+    logo:(BRANDS[m.brand]||{}).logo, color:labColor(m),
+    dim: inFilter.size !== MODELS.length && !inFilter.has(m.id),
+    marked: inCmp(m.id)
+  }));
+
+  $('#rankTitle').textContent = met.label + ' 排行';
+  $('#rankBasis').innerHTML = esc(met.basis) +
+    ' · ' + (met.better==='low' ? '越低越好' : '越高越好') +
+    ' · 共 <b class="mono">' + withVal.length + '</b> / ' + MODELS.length + ' 个模型有该项数据' +
+    (cap < withVal.length ? '，屏幕较窄，图中只画前 <b class="mono">'+cap+'</b> 名' : '');
+
+  CH.rankChart(host, {
+    metric: met.label, rows, better: met.better,
+    tickFmt: met.money ? 'money' : '',
+    yTitle: met.short + (met.unit ? '（'+met.unit.trim()+'）' : ''),
+    aria: met.label + ' 排行：' + rows.slice(0,3).map(r=>r.name+' '+r.disp).join('，') + '，完整数据见下方表格'
+  });
+
+  /* 图例：色块 + 真实 logo + 名称 */
+  const labs = [];
+  rows.forEach(r => { const m = byId[r.id]; if(labs.indexOf(m.org) < 0) labs.push(m.org); });
+  const lg = $('#rankLegend');
+  lg.className = 'chart-legend' + (state.labColor ? '' : ' mono');
+  lg.innerHTML = state.labColor ? labs.map(o =>
+    '<span class="lg"><span class="sw" style="background:'+(LAB_COLORS[o]||MONO_COLOR)+'"></span>'+
+    logoHTML(o)+esc(orgName(o))+'</span>').join('') : '';
+
+  $('#rankFoot').innerHTML =
+    (met.warn ? '<b>注意：</b>'+esc(met.warn)+'　' : '') +
+    '柱下是各家<b>真实品牌标识</b>：颜色只用来一眼看出同一家聚在哪儿，<b>识别请看标识与名称</b>' +
+    '——16 个厂商色无法两两可分（色盲视角下更甚），别只凭颜色下结论。' +
+    '数值只标了前三名与已加入对比的，其余悬停查看，完整数据见下方表格。';
+}
+
+/* ================================================================
    深度对比：模型为列、指标为行
    ================================================================ */
 function renderCompareUI(){
@@ -2623,6 +3106,12 @@ function renderCompare(){
 
 function rowCells(list, mk){
   const best = bestOf(list, mk);
+  /* 行内条按「占最优值的比例」画，而不是按选中集的极差归一化 ——
+     后者在只选两个时会把落后的那根压成空条，只重复了「谁更大」这一件事。 */
+  const nums = list.map(x=>x[mk]).filter(Boolean).map(x=>x.v);
+  const vmax = nums.length ? Math.max.apply(null,nums) : 0;
+  const vmin = nums.length ? Math.min.apply(null,nums) : 0;
+  const lowBetter = MET[mk] && MET[mk].better === 'low';
   const cells = list.map(m=>{
     const val = m[mk], t = fmtVal(mk, val);
     if(!t){
@@ -2630,8 +3119,15 @@ function rowCells(list, mk){
       return {txt:'—', html:'<td><span class="cval none">暂无数据</span>'+note+'</td>'};
     }
     const isBest = best.v != null && val.v === best.v;
+    /* 行内条：占最优值的比例（越低越好的指标取倒数比），只在本行内可比 */
+    let bar = '';
+    if(nums.length > 1 && vmax > 0){
+      const w = lowBetter ? (vmin / m[mk].v) * 100 : (m[mk].v / vmax) * 100;
+      bar = '<span class="cbar" title="占本行最优值的 '+Math.round(w)+'%"><i class="'+(isBest?'best':'')+
+            '" style="width:'+Math.max(4,Math.min(100,w)).toFixed(1)+'%"></i></span>';
+    }
     return {txt:t, html:'<td><span class="cval'+(isBest?' best':'')+'">'+esc(t)+'<span class="u">'+esc(unitOf(mk))+'</span></span>'+
-      kindTag(val, true) + (val.note ? '<span class="cnote">'+esc(val.note)+'</span>' : '') + '</td>'};
+      kindTag(val, true) + (val.note ? '<span class="cnote">'+esc(val.note)+'</span>' : '') + bar + '</td>'};
   });
   return {cells, best};
 }
@@ -2766,49 +3262,29 @@ function renderPricing(){
     (s.note?'<p class="note">'+esc(s.note)+'</p>':'')+'</div>').join('');
 }
 
-/* ---- 散点：AAII vs 输出单价（对数），两轴都是页面已有的单一口径数据 ---- */
+/* ---- 散点：智能指数 × 单任务成本（两轴同源，均为 AA 实测） ---- */
 function drawChart(){
   const box = $('#chartBox'); if(!box) return;
-  const pts = MODELS.filter(m=>m.aaii && m.cpt);
-  if(pts.length < 3){
-    box.innerHTML = '<div class="empty"><b>可靠数据不足，改用表格</b>同时具备智能指数与单任务成本的模型少于 3 个，画散点没有意义。</div>';
-    return;
-  }
-  const xs = pts.map(p=>p.cpt.v), ys = pts.map(p=>p.aaii.v);
-  const x0 = Math.log10(Math.min.apply(null,xs)*0.72), x1 = Math.log10(Math.max.apply(null,xs)*1.35);
-  const y0 = Math.max(0, Math.floor(Math.min.apply(null,ys)/10)*10 - 2), y1 = Math.ceil(Math.max.apply(null,ys)/10)*10 + 2;
+  const pts = MODELS.filter(m => m.aaii && m.cpt).map(m => ({
+    id:m.id, name:m.name, orgName:orgName(m.org),
+    x:m.cpt.v, y:m.aaii.v,
+    xDisp:'单任务 '+fmtVal('cpt',m.cpt), yDisp:'智能指数 '+fmtVal('aaii',m.aaii),
+    color:labColor(m), marked:inCmp(m.id)
+  }));
+  CH.scatterChart(box, {
+    points: pts,
+    aria:'散点图：纵轴为 Artificial Analysis 智能指数 v4.3，横轴为跑完一道评测任务的实测成本（美元，对数刻度）。完整数值见本页表格。'
+  });
 
-  box.innerHTML = '<div class="chart" id="chart" role="img" aria-label="散点图：纵轴为 Artificial Analysis 智能指数 v4.3，横轴为跑完一道智能指数任务的实测成本，美元，对数刻度"></div><span class="ax-x">单任务实测成本（美元，对数刻度）→ 越左越便宜</span>';
-  const c = $('#chart');
-  const W = c.clientWidth, H = c.clientHeight;
-  const X = v => ((Math.log10(v)-x0)/(x1-x0))*W;
-  const Y = v => (1-(v-y0)/(y1-y0))*H;
-  let html = '<span class="ax-y">AAII 智能指数 →</span>';
-  for(let i=0;i<=4;i++){
-    const val = y0 + (y1-y0)/4*i, top = Y(val);
-    html += '<span class="gl" style="top:'+top+'px"></span><span class="gy" style="top:'+top+'px">'+val.toFixed(0)+'</span>';
+  const labs = [];
+  pts.forEach(p => { const m = byId[p.id]; if(labs.indexOf(m.org) < 0) labs.push(m.org); });
+  const lg = $('#scatterLegend');
+  if(lg){
+    lg.className = 'chart-legend' + (state.labColor ? '' : ' mono');
+    lg.innerHTML = state.labColor ? labs.map(o =>
+      '<span class="lg"><span class="sw" style="background:'+(LAB_COLORS[o]||MONO_COLOR)+'"></span>'+
+      logoHTML(o)+esc(orgName(o))+'</span>').join('') : '';
   }
-  [0.05,0.1,0.25,0.5,1,2,5,10].forEach(t=>{ if(Math.log10(t)>=x0 && Math.log10(t)<=x1) html += '<span class="gx" style="left:'+X(t)+'px">$'+t+'</span>'; });
-  /* 标签避让：同一片区域只显示第一个标签，其余只留悬停提示，
-     否则密集区会糊成一团。优先给智能指数高的点留标签。 */
-  const placed = [];
-  const sorted = pts.slice().sort((a,b)=> b.aaii.v - a.aaii.v);
-  const showLabel = {};
-  sorted.forEach(p=>{
-    const px = X(p.cpt.v), py = Y(p.aaii.v);
-    const clash = placed.some(q => Math.abs(q.x-px) < 96 && Math.abs(q.y-py) < 13);
-    if(!clash || inCmp(p.id)){ showLabel[p.id] = true; placed.push({x:px,y:py}); }
-  });
-  pts.forEach(p=>{
-    const px = X(p.cpt.v), py = Y(p.aaii.v);
-    const flip = px > W*0.66;   /* 靠右的点，标签翻到左边，避免溢出画布 */
-    const price = p.priceIn && p.priceOut ? ' · 标价 $'+p.priceIn.v+' / $'+p.priceOut.v+' 每百万 token' : '';
-    html += '<span class="pt'+(inCmp(p.id)?' mark':'')+'" style="left:'+px+'px;top:'+py+'px" tabindex="0" role="button" data-model="'+p.id+'" '+
-      'title="'+esc(p.name+' · 智能指数 '+p.aaii.v+' · 单任务成本 $'+p.cpt.v.toFixed(2)+price)+'">'+
-      (showLabel[p.id] ? '<span class="pl'+(flip?' left':'')+'">'+esc(p.name)+'</span>' : '')+
-      '</span>';
-  });
-  c.innerHTML = html;
 }
 
 /* ================================================================
@@ -2979,7 +3455,7 @@ document.addEventListener('click', function(e){
   if(t.dataset.cmpset !== undefined){ setCmpSet(t.dataset.cmpset.split(',').filter(Boolean)); closeDrawer(); return; }
   if(t.dataset.cmp){
     e.preventDefault();
-    if(toggleCmp(t.dataset.cmp)){ renderModelTable(); renderOverview(); if(state.view==='pricing'){ renderPricing(); drawChart(); } }
+    if(toggleCmp(t.dataset.cmp)){ renderModelTable(); renderOverview(); renderRank(); if(state.view==='pricing'){ renderPricing(); drawChart(); } }
     if($('#drawer').classList.contains('open')){ const id=t.dataset.cmp; if(t.closest('.df')) openModel(id); }
     renderCompareUI();
     return;
@@ -2990,9 +3466,9 @@ document.addEventListener('click', function(e){
   if(t.dataset.org){
     const o = t.dataset.org;
     state.orgs.has(o) ? state.orgs.delete(o) : state.orgs.add(o);
-    renderFilters(); renderModelTable(); return;
+    renderFilters(); renderModelTable(); renderRank(); return;
   }
-  if(t.dataset.flag){ state.flags[t.dataset.flag] = !state.flags[t.dataset.flag]; renderFilters(); renderModelTable(); return; }
+  if(t.dataset.flag){ state.flags[t.dataset.flag] = !state.flags[t.dataset.flag]; renderFilters(); renderModelTable(); renderRank(); return; }
   if(t.dataset.sort){
     const k = t.dataset.sort;
     if(state.sort.k === k) state.sort.dir *= -1;
@@ -3030,10 +3506,10 @@ document.addEventListener('keydown', function(e){
 $('#q').addEventListener('input', function(){
   state.q = this.value;
   $('#qClear').hidden = !this.value;
-  renderModelTable();
+  renderModelTable(); renderRank();
   if(state.view !== 'models' && this.value.trim()) location.hash = 'models';
 });
-$('#qClear').addEventListener('click', function(){ $('#q').value=''; state.q=''; this.hidden=true; renderModelTable(); $('#q').focus(); });
+$('#qClear').addEventListener('click', function(){ $('#q').value=''; state.q=''; this.hidden=true; renderModelTable(); renderRank(); $('#q').focus(); });
 
 document.addEventListener('change', function(e){
   const cb = e.target.closest('[data-col]'); if(!cb) return;
@@ -3048,9 +3524,9 @@ document.addEventListener('change', function(e){
 
 document.addEventListener('click', function(e){
   if(e.target.closest('#colBtn')){ const p = $('#colPop'); p.classList.toggle('open'); $('#colBtn').setAttribute('aria-expanded', p.classList.contains('open')); }
-  if(e.target.closest('#fReset')){ state.orgs.clear(); state.flags={open:false,scored:false,current:false}; state.q=''; $('#q').value=''; $('#qClear').hidden=true; renderFilters(); renderModelTable(); }
+  if(e.target.closest('#fReset')){ state.orgs.clear(); state.flags={open:false,scored:false,current:false}; state.q=''; $('#q').value=''; $('#qClear').hidden=true; renderFilters(); renderModelTable(); renderRank(); }
   if(e.target.closest('#btnDiff')){ state.diffOnly = !state.diffOnly; renderCompare(); }
-  if(e.target.closest('#btnCmpClear') || e.target.closest('#trayClear')){ state.cmp=[]; store.set('cmp',[]); renderModelTable(); renderCompareUI(); renderOverview(); if(state.view==='pricing') drawChart(); }
+  if(e.target.closest('#btnCmpClear') || e.target.closest('#trayClear')){ state.cmp=[]; store.set('cmp',[]); renderModelTable(); renderCompareUI(); renderOverview(); renderRank(); if(state.view==='pricing') drawChart(); }
   if(e.target.closest('#trayGo') || e.target.closest('#btnCompare')){
     location.hash = 'models';
     setTimeout(()=>{ const el=$('#secCompare'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 60);
@@ -3059,6 +3535,12 @@ document.addEventListener('click', function(e){
   if(e.target.closest('#voiceMore')){ state.voiceAll = !state.voiceAll; renderVoices(); }
   if(e.target.closest('#favCompare')){ setCmpSet(state.fav.slice(0,MAXCMP)); }
   if(e.target.closest('#btnUpdate')){ $('#updDialog').classList.add('open'); $('#updCopy').focus(); }
+  const rk = e.target.closest('[data-rank]');
+  if(rk){ state.rankMetric = rk.dataset.rank; store.set('rankMetric', state.rankMetric); renderRank(); }
+  if(e.target.closest('#rankColor')){
+    state.labColor = !state.labColor; store.set('labColor', state.labColor);
+    renderRank(); if(state.view==='pricing') drawChart();
+  }
 });
 
 /* 更新指令：这个按钮只做「复制文字」，不做也做不了真正的数据更新 */
@@ -3081,13 +3563,17 @@ $('#updCopy').addEventListener('click', async function(){
 
 window.addEventListener('hashchange', ()=> go(location.hash.slice(1)));
 let rt = null;
-window.addEventListener('resize', ()=>{ clearTimeout(rt); rt = setTimeout(()=>{ if(state.view==='pricing') drawChart(); }, 160); }, {passive:true});
+window.addEventListener('resize', ()=>{ clearTimeout(rt); rt = setTimeout(()=>{
+  if(state.view==='pricing') drawChart();
+  if(state.view==='models')  renderRank();
+}, 160); }, {passive:true});
 
 /* ---------------- 启动 ---------------- */
 renderNav();
 renderOverview();
 renderFilters();
 renderModelTable();
+renderRank();
 renderPricing();
 renderIntel();
 renderCompareUI();
